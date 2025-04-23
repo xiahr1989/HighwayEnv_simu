@@ -60,14 +60,17 @@ def main():
                 if dashedlane_candidates:
                     final_candidates = dashedlane_candidates
 
+                # Orient along the lane by the end of the planning horizon
                 orient_candidates = Orient_along_the_lane(final_candidates)
                 if orient_candidates:
                     final_candidates = orient_candidates
 
+                # speed >= 19
                 speed_candidates = search_speed_candidates_from_candidates(final_candidates, current_state, dt, 19)
                 if speed_candidates:
                     final_candidates = speed_candidates
 
+                # speed <=24
                 speed_candidates2 = search_speed_candidates2_from_candidates(final_candidates, current_state, dt, 24)
                 if speed_candidates2:
                     final_candidates = speed_candidates2
