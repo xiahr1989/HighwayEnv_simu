@@ -210,6 +210,159 @@ class RoadObject(ABC):
     def __repr__(self):
         return self.__str__()
 
+class RoadObjectGhost(ABC):
+    """
+    Common interface for objects that appear on the road.
+
+    For now we assume all objects are rectangular.
+    """
+
+    LENGTH: float = 2  # Object length [m]
+    WIDTH: float = 2  # Object width [m]
+
+    def __init__(
+        self,
+        road: Road,
+        position: Sequence[float],
+        heading: float = 0,
+        speed: float = 0,
+    ):
+        """
+        :param road: the road instance where the object is placed in
+        :param position: cartesian position of object in the surface
+        :param heading: the angle from positive direction of horizontal axis
+        :param speed: cartesian speed of object in the surface
+        """
+        self.road = road
+        self.position = np.array(position, dtype=np.float64)
+        self.heading = heading
+        self.speed = speed
+        self.lane_index = (
+            self.road.network.get_closest_lane_index(self.position, self.heading)
+            if self.road
+            else np.nan
+        )
+        self.lane = self.road.network.get_lane(self.lane_index) if self.road else None
+
+        # Enable collision with other collidables
+        self.collidable = False
+
+        # Collisions have physical effects
+        self.solid = True
+
+        # If False, this object will not check its own collisions, but it can still collides with other objects that do
+        # check their collisions.
+        self.check_collisions = False
+
+        self.diagonal = np.sqrt(self.LENGTH**2 + self.WIDTH**2)
+        self.crashed = False
+        self.hit = False
+        self.impact = np.zeros(self.position.shape)
+
+    @classmethod
+    def make_on_lane(
+        cls,
+        road: Road,
+        lane_index: LaneIndex,
+        longitudinal: float,
+        speed: float | None = None,
+    ) -> RoadObject:
+        """
+        Create a vehicle on a given lane at a longitudinal position.
+
+        :param road: a road object containing the road network
+        :param lane_index: index of the lane where the object is located
+        :param longitudinal: longitudinal position along the lane
+        :param speed: initial speed in [m/s]
+        :return: a RoadObject at the specified position
+        """
+        lane = road.network.get_lane(lane_index)
+        if speed is None:
+            speed = lane.speed_limit
+        return cls(
+            road, lane.position(longitudinal, 0), lane.heading_at(longitudinal), speed
+        )
+
+    def handle_collisions(self, other: RoadObject, dt: float = 0) -> None:
+        return
+
+    def _is_colliding(self, other, dt):
+        # 直接返回没有碰撞
+        return False, False, np.zeros(2)
+
+    # Just added for sake of compatibility
+    def to_dict(self, origin_vehicle=None, observe_intentions=True):
+        d = {
+            "presence": 1,
+            "x": self.position[0],
+            "y": self.position[1],
+            "vx": 0.0,
+            "vy": 0.0,
+            "cos_h": np.cos(self.heading),
+            "sin_h": np.sin(self.heading),
+            "cos_d": 0.0,
+            "sin_d": 0.0,
+        }
+        if not observe_intentions:
+            d["cos_d"] = d["sin_d"] = 0
+        if origin_vehicle:
+            origin_dict = origin_vehicle.to_dict()
+            for key in ["x", "y", "vx", "vy"]:
+                d[key] -= origin_dict[key]
+        return d
+
+    @property
+    def direction(self) -> np.ndarray:
+        return np.array([np.cos(self.heading), np.sin(self.heading)])
+
+    @property
+    def velocity(self) -> np.ndarray:
+        return self.speed * self.direction
+
+    def polygon(self) -> np.ndarray:
+        points = np.array(
+            [
+                [-self.LENGTH / 2, -self.WIDTH / 2],
+                [-self.LENGTH / 2, +self.WIDTH / 2],
+                [+self.LENGTH / 2, +self.WIDTH / 2],
+                [+self.LENGTH / 2, -self.WIDTH / 2],
+            ]
+        ).T
+        c, s = np.cos(self.heading), np.sin(self.heading)
+        rotation = np.array([[c, -s], [s, c]])
+        points = (rotation @ points).T + np.tile(self.position, (4, 1))
+        return np.vstack([points, points[0:1]])
+
+    def lane_distance_to(self, other: RoadObject, lane: AbstractLane = None) -> float:
+        """
+        Compute the signed distance to another object along a lane.
+
+        :param other: the other object
+        :param lane: a lane
+        :return: the distance to the other other [m]
+        """
+        if not other:
+            return np.nan
+        if not lane:
+            lane = self.lane
+        return (
+            lane.local_coordinates(other.position)[0]
+            - lane.local_coordinates(self.position)[0]
+        )
+
+    @property
+    def on_road(self) -> bool:
+        """Is the object on its current lane, or off-road?"""
+        return self.lane.on_lane(self.position)
+
+    def front_distance_to(self, other: RoadObject) -> float:
+        return self.direction.dot(other.position - self.position)
+
+    def __str__(self):
+        return f"{self.__class__.__name__} #{id(self) % 1000}: at {self.position}"
+
+    def __repr__(self):
+        return self.__str__()
 
 class Obstacle(RoadObject):
     """Obstacles on the road."""

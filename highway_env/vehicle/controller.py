@@ -111,6 +111,7 @@ class ControlledVehicle(Vehicle):
                 self.position
             ):
                 self.target_lane_index = target_lane_index
+
         elif action == "LANE_LEFT":
             _from, _to, _id = self.target_lane_index
             target_lane_index = (
@@ -161,6 +162,7 @@ class ControlledVehicle(Vehicle):
 
         # Lateral position control
         lateral_speed_command = -self.KP_LATERAL * lane_coords[1]
+        
         # Lateral speed to heading
         heading_command = np.arcsin(
             np.clip(lateral_speed_command / utils.not_zero(self.speed), -1, 1)
@@ -197,7 +199,7 @@ class ControlledVehicle(Vehicle):
         """
         #return self.KP_A * (target_speed - self.speed)
         acceleration = self.KP_A * (target_speed - self.speed)
-        return np.clip(acceleration, -1.0, 1.0)  # 限制加速度范围到 [-1.0, 1.0] m/s²
+        return np.clip(acceleration, -5.0, 5.0)  # modified to restrict the acceleration
 
 
     def get_routes_at_intersection(self) -> List[Route]:
@@ -259,7 +261,8 @@ class ControlledVehicle(Vehicle):
 class MDPVehicle(ControlledVehicle):
     """A controlled vehicle with a specified discrete range of allowed target speeds."""
 
-    DEFAULT_TARGET_SPEEDS = np.linspace(20, 30, 3)
+    #DEFAULT_TARGET_SPEEDS = np.linspace(20, 30, 3)
+    DEFAULT_TARGET_SPEEDS = np.linspace(0, 30, 30)
 
     def __init__(
         self,
@@ -308,6 +311,7 @@ class MDPVehicle(ControlledVehicle):
             self.speed_index = self.speed_to_index(self.speed) + 1
         elif action == "SLOWER":
             self.speed_index = self.speed_to_index(self.speed) - 1
+            #self.speed_index = self.speed_to_index(self.speed) - 3.5
         else:
             super().act(action)
             return

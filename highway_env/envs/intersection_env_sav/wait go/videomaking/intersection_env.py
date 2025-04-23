@@ -260,8 +260,8 @@ class IntersectionEnv(AbstractEnv):
             road=self.road,
             position=(2.2,11.2), 
             heading=0.0,
-            speed=0.0,    
-            predition_type="zero_steering" 
+            speed=0.0,
+            predition_type="zero_steering"
         )
         self.road.objects.append(sign)
 
@@ -277,64 +277,14 @@ class IntersectionEnv(AbstractEnv):
         non_ego = vehicle_type.make_on_lane(
             self.road,
             (f"o{route0}", f"ir{route0}", 0),  # (o1 -> ir1)
-            # longitudinal=-20,
-            # speed=9
-            longitudinal=-42,
+            longitudinal=-20,
             speed=9
+            # longitudinal=-42,
+            # speed=9
         )
-        non_ego.plan_route_to(f"o{route1}")   
+        non_ego.plan_route_to(f"o{route1}") 
         non_ego.randomize_behavior()
         self.road.vehicles.append(non_ego)
-
-        non_ego1 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0), 
-            longitudinal=-50,
-            speed=0
-        )
-        non_ego1.plan_route_to(f"o{route1}")   
-        non_ego1.randomize_behavior()
-        self.road.vehicles.append(non_ego1)
-
-        non_ego2 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),  
-            longitudinal=-60,
-            speed=0
-        )
-        non_ego2.plan_route_to(f"o{route1}")  
-        non_ego2.randomize_behavior()
-        self.road.vehicles.append(non_ego2)
-
-        non_ego3 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),
-            longitudinal=-70,
-            speed=0
-        )
-        non_ego3.plan_route_to(f"o{route1}") 
-        non_ego3.randomize_behavior()
-        self.road.vehicles.append(non_ego3)
-
-        non_ego4 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),
-            longitudinal=-80,
-            speed=0
-        )
-        non_ego4.plan_route_to(f"o{route1}")  
-        non_ego4.randomize_behavior()
-        self.road.vehicles.append(non_ego4)
-
-        non_ego5 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0), 
-            longitudinal=-90,
-            speed=0
-        )
-        non_ego5.plan_route_to(f"o{route1}")  
-        non_ego5.randomize_behavior()
-        self.road.vehicles.append(non_ego5)
 
         # Controlled vehicles
         self.controlled_vehicles = []

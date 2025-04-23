@@ -125,13 +125,6 @@ class HighwayEnv(AbstractEnv):
         self._create_vehicles()
 
     def _create_road(self) -> None:
-        # self.road = Road(
-        #     network=RoadNetwork.straight_road_network(
-        #         self.config["lanes_count"], speed_limit=30
-        #     ),
-        #     np_random=self.np_random,
-        #     record_history=self.config["show_trajectories"],
-        # )
 
         road_network = RoadNetwork()
 
@@ -139,15 +132,15 @@ class HighwayEnv(AbstractEnv):
 
         lane0 = StraightLane(
             start=[0, 0],
-            end=[2000, 0], 
+            end=[2000, 0],  
             width=lane_width,
+
             line_types=(LineType.CONTINUOUS, LineType.STRIPED),
             speed_limit=30.0,
             forbidden=False
         )
         road_network.add_lane("0", "1", lane0)
 
-        # 定义 lane1
         lane1 = StraightLane(
             start=[0, lane_width],
             end=[2000, lane_width],
@@ -189,7 +182,7 @@ class HighwayEnv(AbstractEnv):
         self.controlled_vehicles = []
         lane_id = 2
         longitudinal = 20.0
-        lane = self.road.network.get_lane(("0", "1", lane_id))
+        lane = self.road.network.get_lane(("0", "1", lane_id))  
         ego_position = lane.position(longitudinal, 0)
         ego_heading = lane.heading_at(longitudinal)
         ego_speed = 21.0
@@ -200,7 +193,6 @@ class HighwayEnv(AbstractEnv):
         self.road.vehicles.append(ego)
 
         other_configs = [
-            # (lane_id, longitudinal, speed)
             (0, 570.0, 22.0),  
             (1, 560.0, 20.5),  
             (1, 25.0, 27),
@@ -216,7 +208,7 @@ class HighwayEnv(AbstractEnv):
             (222, 222, 0),   
             (255, 0,   0), 
             (0,   255, 255), 
-            (128, 128, 128) 
+            (128, 128, 128)  
         ]
 
         for i, (o_lane_id, o_longitudinal, o_speed) in enumerate(other_configs):

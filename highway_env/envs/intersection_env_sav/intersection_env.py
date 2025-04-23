@@ -7,7 +7,7 @@ from highway_env.envs.common.abstract import AbstractEnv
 from highway_env.road.lane import AbstractLane, CircularLane, LineType, StraightLane
 from highway_env.road.regulation import RegulatedRoad
 from highway_env.road.road import RoadNetwork
-from highway_env.vehicle.kinematics import Vehicle, StopSign
+from highway_env.vehicle.kinematics import Vehicle
 
 
 class IntersectionEnv(AbstractEnv):
@@ -21,7 +21,7 @@ class IntersectionEnv(AbstractEnv):
             {
                 "observation": {
                     "type": "Kinematics",
-                    "vehicles_count": 2,
+                    "vehicles_count": 15,
                     "features": ["presence", "x", "y", "vx", "vy", "cos_h", "sin_h"],
                     "features_range": {
                         "x": [-100, 100],
@@ -37,14 +37,13 @@ class IntersectionEnv(AbstractEnv):
                     "type": "DiscreteMetaAction",
                     "longitudinal": True,
                     "lateral": False,
-                    "target_speeds": [0, 2, 4, 6, 8],
+                    "target_speeds": [0, 4.5, 9],
                 },
-                "duration": 45,  # [s]
-                "destination": "o2", # destination, left o1, straight o2, right o3
+                "duration": 13,  # [s]
+                "destination": "o1",
                 "controlled_vehicles": 1,
-                "initial_vehicle_count": 1,
-                #"spawn_probability": 0.6,
-                "spawn_probability": 0,
+                "initial_vehicle_count": 10,
+                "spawn_probability": 0.6,
                 "screen_width": 600,
                 "screen_height": 600,
                 "centering_position": [0.5, 0.6],
@@ -255,86 +254,33 @@ class IntersectionEnv(AbstractEnv):
 
         :return: the ego-vehicle
         """
-
-        sign = StopSign(
-            road=self.road,
-            position=(2.2,11.2), 
-            heading=0.0,
-            speed=0.0,    
-            predition_type="zero_steering" 
-        )
-        self.road.objects.append(sign)
-
         # Configure vehicles
         vehicle_type = utils.class_from_path(self.config["other_vehicles_type"])
         vehicle_type.DISTANCE_WANTED = 7  # Low jam distance
         vehicle_type.COMFORT_ACC_MAX = 6
         vehicle_type.COMFORT_ACC_MIN = -3
 
-        route0 = 1  
-        route1 = 3 
+        # Random vehicles
+        simulation_steps = 3
+        for t in range(n_vehicles - 1):
+            self._spawn_vehicle(np.linspace(0, 80, n_vehicles)[t])
+        for _ in range(simulation_steps):
+            [
+                (
+                    self.road.act(),
+                    self.road.step(1 / self.config["simulation_frequency"]),
+                )
+                for _ in range(self.config["simulation_frequency"])
+            ]
 
-        non_ego = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),  # (o1 -> ir1)
-            # longitudinal=-20,
-            # speed=9
-            longitudinal=-42,
-            speed=9
+        # Challenger vehicle
+        self._spawn_vehicle(
+            60,
+            spawn_probability=1,
+            go_straight=True,
+            position_deviation=0.1,
+            speed_deviation=0,
         )
-        non_ego.plan_route_to(f"o{route1}")   
-        non_ego.randomize_behavior()
-        self.road.vehicles.append(non_ego)
-
-        non_ego1 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0), 
-            longitudinal=-50,
-            speed=0
-        )
-        non_ego1.plan_route_to(f"o{route1}")   
-        non_ego1.randomize_behavior()
-        self.road.vehicles.append(non_ego1)
-
-        non_ego2 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),  
-            longitudinal=-60,
-            speed=0
-        )
-        non_ego2.plan_route_to(f"o{route1}")  
-        non_ego2.randomize_behavior()
-        self.road.vehicles.append(non_ego2)
-
-        non_ego3 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),
-            longitudinal=-70,
-            speed=0
-        )
-        non_ego3.plan_route_to(f"o{route1}") 
-        non_ego3.randomize_behavior()
-        self.road.vehicles.append(non_ego3)
-
-        non_ego4 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0),
-            longitudinal=-80,
-            speed=0
-        )
-        non_ego4.plan_route_to(f"o{route1}")  
-        non_ego4.randomize_behavior()
-        self.road.vehicles.append(non_ego4)
-
-        non_ego5 = vehicle_type.make_on_lane(
-            self.road,
-            (f"o{route0}", f"ir{route0}", 0), 
-            longitudinal=-90,
-            speed=0
-        )
-        non_ego5.plan_route_to(f"o{route1}")  
-        non_ego5.randomize_behavior()
-        self.road.vehicles.append(non_ego5)
 
         # Controlled vehicles
         self.controlled_vehicles = []
@@ -348,7 +294,7 @@ class IntersectionEnv(AbstractEnv):
             ego_vehicle = self.action_type.vehicle_class(
                 self.road,
                 ego_lane.position(60 + 5 * self.np_random.normal(1), 0),
-                speed=ego_lane.speed_limit-6,
+                speed=ego_lane.speed_limit,
                 heading=ego_lane.heading_at(60),
             )
             try:
