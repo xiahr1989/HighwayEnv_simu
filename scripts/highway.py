@@ -46,22 +46,16 @@ def main():
             ego_y = current_state['ego_position'][1]
 
             if any(abs(ego_y - target) < 0.1 for target in [0.0, 4.0, 8.0, 12.0]):
+                # No collision
                 candidate_primitives = search_composite_motion_primitives(current_state, dt, num_primitives=3)
                 final_candidates = candidate_primitives
 
+                # Do not cross solid lane line
                 solidlane_candidates = search_solidlane_candidates_from_candidates(final_candidates, current_state, dt)
                 if solidlane_candidates:
                     final_candidates = solidlane_candidates
-
-                ego_lane = current_state['ego_lane']
-                if ego_lane == 3:
-                    zero_first_candidates = []
-                    for seq in final_candidates:
-                        if seq[0] == 0:
-                            zero_first_candidates.append(seq)
-                    if zero_first_candidates:
-                        final_candidates = zero_first_candidates
-
+                        
+                # Do not cross dashed lane line
                 dashedlane_candidates = search_dashedlane_candidates_from_candidates(final_candidates, current_state)
                 if dashedlane_candidates:
                     final_candidates = dashedlane_candidates
@@ -244,6 +238,14 @@ def search_solidlane_candidates_from_candidates(candidate_list, current_state, d
             continue
         else:
             filtered_candidates.append(action_seq)
+    ego_lane = current_state['ego_lane']
+                if ego_lane == 3:
+                    zero_first_candidates = []
+                    for seq in final_candidates:
+                        if seq[0] == 0:
+                            zero_first_candidates.append(seq)
+                    if zero_first_candidates:
+                        final_candidates = zero_first_candidates
     return filtered_candidates
 
 def search_speed_candidates_from_candidates(candidate_list, current_state, dt, speed_threshold): 
